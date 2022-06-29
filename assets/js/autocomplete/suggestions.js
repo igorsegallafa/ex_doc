@@ -17,7 +17,8 @@ const SUGGESTION_CATEGORY = {
   module: 'module',
   moduleChild: 'module-child',
   mixTask: 'mix-task',
-  extra: 'extra'
+  extra: 'extra',
+  extraChild: 'extra-child'
 }
 
 /**
@@ -38,12 +39,13 @@ export function getSuggestions (query, limit = 5) {
     ...findSuggestionsInTopLevelNodes(nodes.modules, query, SUGGESTION_CATEGORY.module),
     ...findSuggestionsInChildNodes(nodes.modules, query, SUGGESTION_CATEGORY.moduleChild),
     ...findSuggestionsInTopLevelNodes(nodes.tasks, query, SUGGESTION_CATEGORY.mixTask),
-    ...findSuggestionsInTopLevelNodes(nodes.extras, query, SUGGESTION_CATEGORY.extra)
+    ...findSuggestionsInTopLevelNodes(nodes.extras, query, SUGGESTION_CATEGORY.extra),
+    ...findSuggestionsInExtraChild(nodes.extras, query, SUGGESTION_CATEGORY.extraChild)
   ].sort().slice(0, limit).map((suggestion, index) => { return {...suggestion, ...{index: index}} })
 
   const moduleSuggestions = suggestions.filter(suggestion => suggestion.category === SUGGESTION_CATEGORY.module || suggestion.category === SUGGESTION_CATEGORY.moduleChild)
   const taskSuggestions = suggestions.filter(suggestion => suggestion.category === SUGGESTION_CATEGORY.mixTask)
-  const extraSuggestions = suggestions.filter(suggestion => suggestion.category === SUGGESTION_CATEGORY.extra)
+  const extraSuggestions = suggestions.filter(suggestion => suggestion.category === SUGGESTION_CATEGORY.extra || suggestion.category === SUGGESTION_CATEGORY.extraChild)
 
   return {suggestions: suggestions, modules: moduleSuggestions, tasks: taskSuggestions, extras: extraSuggestions}
 }
@@ -72,6 +74,20 @@ function findSuggestionsInChildNodes (nodes, query, category) {
           moduleChildNodeSuggestion(childNode, node.id, query, category, label)
         )
       })
+    })
+    .filter(suggestion => suggestion !== null)
+}
+
+/**
+ * Finds suggestions in headers of the given extra nodes.
+ */
+function findSuggestionsInExtraChild (nodes, query, category) {
+  return nodes
+    .filter(node => node.headers)
+    .flatMap(node => {
+      return node.headers.map(childNode =>
+        extraChildNodeSuggestion(childNode, node.id, node.title, query, category)
+      )
     })
     .filter(suggestion => suggestion !== null)
 }
@@ -136,6 +152,23 @@ function moduleChildNodeSuggestion (childNode, parentId, query, category, label)
     matchQuality: matchQuality(modFun, query),
     category: category,
     index: null
+  }
+}
+
+/**
+ * Builds a suggestion for a extra child node.
+ * Returns null if the node doesn't match the query.
+ */
+function extraChildNodeSuggestion (childNode, parentId, parentTitle, query, category) {
+  if (!matchesAll(childNode.id, query)) { return null }
+
+  return {
+    link: `${parentId}.html#${childNode.anchor}`,
+    title: highlightMatches(childNode.id, query),
+    label: null,
+    description: parentTitle,
+    matchQuality: matchQuality(childNode.id, query),
+    category: category
   }
 }
 
