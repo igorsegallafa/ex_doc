@@ -91,6 +91,7 @@ export function moveAutocompleteSelection (offset) {
 
   if (elementToSelect) {
     elementToSelect.classList.add('selected')
+    elementToSelect.scrollIntoView({behavior: 'smooth'})
   }
 }
 
