@@ -39,11 +39,13 @@ export function isAutocompleteListOpen () {
  * @param {String} searchTerm The term to show suggestions for.
  */
 export function updateAutocompleteList (searchTerm) {
-  state.autocompleteSuggestions = getSuggestions(searchTerm)
+  const suggestions = getSuggestions(searchTerm)
+
+  state.autocompleteSuggestions = suggestions.suggestions
   state.selectedIdx = -1
 
   if (!isBlank(searchTerm)) {
-    renderSuggestions({ term: searchTerm, suggestions: state.autocompleteSuggestions })
+    renderSuggestions({ term: searchTerm, modules: suggestions.modules, tasks: suggestions.tasks, extras: suggestions.extras })
     // Highlight the first option
     moveAutocompleteSelection(0)
     showAutocompleteList()
@@ -53,8 +55,8 @@ export function updateAutocompleteList (searchTerm) {
 }
 
 // Updates list of suggestions inside the autocomplete.
-function renderSuggestions ({ term, suggestions }) {
-  const autocompleteContainerHtml = autocompleteSuggestionsTemplate({ suggestions, term })
+function renderSuggestions ({ term, modules, tasks, extras }) {
+  const autocompleteContainerHtml = autocompleteSuggestionsTemplate({ modules, tasks, extras, term })
 
   const autocompleteContainer = qs(AUTOCOMPLETE_CONTAINER_SELECTOR)
   autocompleteContainer.innerHTML = autocompleteContainerHtml

@@ -3,20 +3,64 @@
     <div class="title">"<em>{{term}}</em>"</div>
     <div class="description">Search the documentation</div>
   </a>
-  {{#each suggestions}}
-    <a href="{{link}}" class="autocomplete-suggestion" data-index="{{@index}}" tabindex="-1">
-      <div class="title">
-        <span translate="no">{{{title}}}</span>
-        {{#if label}}
-          <span class="label">({{label}})</span>
-        {{/if}}
-      </div>
 
-      {{#if description}}
-        <div class="description" translate="no">
-          {{{description}}}
+  {{#if modules.length}}
+    <div class="header">Modules</div>
+    {{#each modules}}
+      <a href="{{link}}" class="autocomplete-suggestion" data-index="{{index}}" tabindex="-1">
+        <div class="title">
+          <span translate="no">{{{title}}}</span>
+          {{#if label}}
+            <span class="label">({{label}})</span>
+          {{/if}}
         </div>
-      {{/if}}
-    </a>
-  {{/each}}
+
+        {{#if description}}
+          <div class="description" translate="no">
+            {{{description}}}
+          </div>
+        {{/if}}
+      </a>
+    {{/each}}
+  {{/if}}
+
+  {{#if tasks.length}}
+    <div class="header">Tasks</div>
+    {{#each tasks}}
+      <a href="{{link}}" class="autocomplete-suggestion" data-index="{{index}}" tabindex="-1">
+        <div class="title">
+          <span translate="no">{{{title}}}</span>
+          {{#if label}}
+            <span class="label">({{label}})</span>
+          {{/if}}
+        </div>
+
+        {{#if description}}
+          <div class="description" translate="no">
+            {{{description}}}
+          </div>
+        {{/if}}
+      </a>
+    {{/each}}
+  {{/if}}
+
+  {{#if extras.length}}
+    <div class="header">Extras</div>
+    {{#each extras}}
+      <a href="{{link}}" class="autocomplete-suggestion" data-index="{{index}}" tabindex="-1">
+        <div class="title">
+          <span translate="no">{{{title}}}</span>
+          {{#if label}}
+            <span class="label">({{label}})</span>
+          {{/if}}
+        </div>
+
+        {{#if description}}
+          <div class="description" translate="no">
+            {{{description}}}
+          </div>
+        {{/if}}
+      </a>
+    {{/each}}
+  {{/if}}
 </div>

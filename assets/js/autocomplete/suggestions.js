@@ -10,6 +10,7 @@ import { escapeRegexModifiers, escapeHtmlEntities, isBlank } from '../helpers'
  * @property {String|null} description An additional information (to be displayed below the title).
  * @property {Number} matchQuality How well the suggestion matches the given query string.
  * @property {String} category The group of suggestions that the suggestion belongs to.
+ * @property {Number} index The index of suggestion.
  */
 
 const SUGGESTION_CATEGORY = {
@@ -24,7 +25,7 @@ const SUGGESTION_CATEGORY = {
  *
  * @param {String} query The query string to search for.
  * @param {Number} limit The maximum number of results to return.
- * @returns {Suggestion[]} List of suggestions sorted and limited.
+ * @returns {{suggestions: [], modules: [], tasks: [], extras: []}} List of suggestions sorted and limited.
  */
 export function getSuggestions (query, limit = 5) {
   if (isBlank(query)) {
@@ -38,9 +39,13 @@ export function getSuggestions (query, limit = 5) {
     ...findSuggestionsInChildNodes(nodes.modules, query, SUGGESTION_CATEGORY.moduleChild),
     ...findSuggestionsInTopLevelNodes(nodes.tasks, query, SUGGESTION_CATEGORY.mixTask),
     ...findSuggestionsInTopLevelNodes(nodes.extras, query, SUGGESTION_CATEGORY.extra)
-  ]
+  ].sort().slice(0, limit).map((suggestion, index) => { return {...suggestion, ...{index: index}} })
 
-  return sort(suggestions).slice(0, limit)
+  const moduleSuggestions = suggestions.filter(suggestion => suggestion.category === SUGGESTION_CATEGORY.module || suggestion.category === SUGGESTION_CATEGORY.moduleChild)
+  const taskSuggestions = suggestions.filter(suggestion => suggestion.category === SUGGESTION_CATEGORY.mixTask)
+  const extraSuggestions = suggestions.filter(suggestion => suggestion.category === SUGGESTION_CATEGORY.extra)
+
+  return {suggestions: suggestions, modules: moduleSuggestions, tasks: taskSuggestions, extras: extraSuggestions}
 }
 
 /**
@@ -84,7 +89,8 @@ function nodeSuggestion (node, query, category) {
     label: null,
     description: null,
     matchQuality: matchQuality(node.title, query),
-    category: category
+    category: category,
+    index: null
   }
 }
 
@@ -101,7 +107,8 @@ function childNodeSuggestion (childNode, parentId, query, category, label) {
     label: label,
     description: parentId,
     matchQuality: matchQuality(childNode.id, query),
-    category: category
+    category: category,
+    index: null
   }
 }
 
@@ -127,7 +134,8 @@ function moduleChildNodeSuggestion (childNode, parentId, query, category, label)
     label: label,
     description: parentId,
     matchQuality: matchQuality(modFun, query),
-    category: category
+    category: category,
+    index: null
   }
 }
 
