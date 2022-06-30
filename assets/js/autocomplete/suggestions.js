@@ -9,7 +9,8 @@ import { escapeRegexModifiers, escapeHtmlEntities, isBlank } from '../helpers'
  * @property {String|null} label A short text describing suggestion type (to be displayed alongside title).
  * @property {String|null} description An additional information (to be displayed below the title).
  * @property {Number} matchQuality How well the suggestion matches the given query string.
- * @property {String} category The group of suggestions that the suggestion belongs to.
+ * @property {String} category The category of suggestions that the suggestion belongs to.
+ * @property {String} group The group of suggestions that the suggestion belongs to.
  * @property {Number} index The index of suggestion.
  */
 
@@ -21,33 +22,56 @@ const SUGGESTION_CATEGORY = {
   extraChild: 'extra-child'
 }
 
+const SUGGESTION_CATEGORY_HEADER = {
+  'module': 'Modules',
+  'module-child': 'Modules',
+  'mix-task': 'Tasks',
+  'extra': 'Pages',
+  'extra-child': 'Pages'
+}
+
 /**
  * Returns a list of autocomplete suggestion objects matching the given term.
  *
  * @param {String} query The query string to search for.
  * @param {Number} limit The maximum number of results to return.
- * @returns {{suggestions: [], modules: [], tasks: [], extras: []}} List of suggestions sorted and limited.
+ * @returns {{suggestions: [], templateSuggestions: []}} List of suggestions sorted and limited.
  */
 export function getSuggestions (query, limit = 20) {
   if (isBlank(query)) {
-    return []
+    return {suggestions: [], templateSuggestions: []}
   }
 
   const nodes = getSidebarNodes()
 
+  const moduleSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.modules, query, SUGGESTION_CATEGORY.module), ...findSuggestionsInChildNodes(nodes.modules, query, SUGGESTION_CATEGORY.moduleChild)]);
+  const taskSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.tasks, query, SUGGESTION_CATEGORY.mixTask)]);
+  const extraSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.extras, query, SUGGESTION_CATEGORY.extra), ...findSuggestionsInExtraChild(nodes.extras, query, SUGGESTION_CATEGORY.extraChild)]);
+
   const suggestions = [
-    ...findSuggestionsInTopLevelNodes(nodes.modules, query, SUGGESTION_CATEGORY.module),
-    ...findSuggestionsInChildNodes(nodes.modules, query, SUGGESTION_CATEGORY.moduleChild),
-    ...findSuggestionsInTopLevelNodes(nodes.tasks, query, SUGGESTION_CATEGORY.mixTask),
-    ...findSuggestionsInTopLevelNodes(nodes.extras, query, SUGGESTION_CATEGORY.extra),
-    ...findSuggestionsInExtraChild(nodes.extras, query, SUGGESTION_CATEGORY.extraChild)
-  ].sort().slice(0, limit).map((suggestion, index) => { return {...suggestion, ...{index: index}} })
+    ...moduleSuggestions,
+    ...taskSuggestions,
+    ...extraSuggestions.filter(suggestion => suggestion.group !== ''),
+    ...extraSuggestions.filter(suggestion => suggestion.group === '')
+  ].slice(0, limit).map((suggestion, index) => { return {...suggestion, ...{index: index}} })
 
-  const moduleSuggestions = suggestions.filter(suggestion => suggestion.category === SUGGESTION_CATEGORY.module || suggestion.category === SUGGESTION_CATEGORY.moduleChild)
-  const taskSuggestions = suggestions.filter(suggestion => suggestion.category === SUGGESTION_CATEGORY.mixTask)
-  const extraSuggestions = suggestions.filter(suggestion => suggestion.category === SUGGESTION_CATEGORY.extra || suggestion.category === SUGGESTION_CATEGORY.extraChild)
+  const templateSuggestions =
+      suggestions
+        .reduce(getSuggestionsWithHeader, [])
+        .map(suggestion => typeof suggestion === 'string' ? {header: suggestion} : suggestion)
 
-  return {suggestions: suggestions, modules: moduleSuggestions, tasks: taskSuggestions, extras: extraSuggestions}
+  return {suggestions: suggestions, templateSuggestions: templateSuggestions}
+}
+
+function getSuggestionsWithHeader (result, suggestion) {
+  const considerGroupAsHeader = suggestion.group && suggestion.group !== '' && (suggestion.category === SUGGESTION_CATEGORY.extra || suggestion.category === SUGGESTION_CATEGORY.extraChild)
+  const header = considerGroupAsHeader ? suggestion.group : SUGGESTION_CATEGORY_HEADER[suggestion.category]
+
+  if (!result.includes(header))
+    result.push(header)
+
+  result.push(suggestion)
+  return result
 }
 
 /**
@@ -86,7 +110,7 @@ function findSuggestionsInExtraChild (nodes, query, category) {
     .filter(node => node.headers)
     .flatMap(node => {
       return node.headers.map(childNode =>
-        extraChildNodeSuggestion(childNode, node.id, node.title, query, category)
+        extraChildNodeSuggestion(childNode, node.id, node.title, query, category, node.group)
       )
     })
     .filter(suggestion => suggestion !== null)
@@ -106,6 +130,7 @@ function nodeSuggestion (node, query, category) {
     description: null,
     matchQuality: matchQuality(node.title, query),
     category: category,
+    group: node.group,
     index: null
   }
 }
@@ -124,6 +149,7 @@ function childNodeSuggestion (childNode, parentId, query, category, label) {
     description: parentId,
     matchQuality: matchQuality(childNode.id, query),
     category: category,
+    group: null,
     index: null
   }
 }
@@ -151,6 +177,7 @@ function moduleChildNodeSuggestion (childNode, parentId, query, category, label)
     description: parentId,
     matchQuality: matchQuality(modFun, query),
     category: category,
+    group: null,
     index: null
   }
 }
@@ -159,7 +186,7 @@ function moduleChildNodeSuggestion (childNode, parentId, query, category, label)
  * Builds a suggestion for a extra child node.
  * Returns null if the node doesn't match the query.
  */
-function extraChildNodeSuggestion (childNode, parentId, parentTitle, query, category) {
+function extraChildNodeSuggestion (childNode, parentId, parentTitle, query, category, group) {
   if (!matchesAll(childNode.id, query)) { return null }
 
   return {
@@ -168,7 +195,9 @@ function extraChildNodeSuggestion (childNode, parentId, parentTitle, query, cate
     label: null,
     description: parentTitle,
     matchQuality: matchQuality(childNode.id, query),
-    category: category
+    category: category,
+    group: group,
+    index: null
   }
 }
 

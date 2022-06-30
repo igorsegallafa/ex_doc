@@ -45,7 +45,7 @@ export function updateAutocompleteList (searchTerm) {
   state.selectedIdx = -1
 
   if (!isBlank(searchTerm)) {
-    renderSuggestions({ term: searchTerm, modules: suggestions.modules, tasks: suggestions.tasks, extras: suggestions.extras })
+    renderSuggestions({ term: searchTerm, suggestions: suggestions.templateSuggestions })
     // Highlight the first option
     moveAutocompleteSelection(0)
     showAutocompleteList()
@@ -55,8 +55,8 @@ export function updateAutocompleteList (searchTerm) {
 }
 
 // Updates list of suggestions inside the autocomplete.
-function renderSuggestions ({ term, modules, tasks, extras }) {
-  const autocompleteContainerHtml = autocompleteSuggestionsTemplate({ modules, tasks, extras, term })
+function renderSuggestions ({ term, suggestions }) {
+  const autocompleteContainerHtml = autocompleteSuggestionsTemplate({ suggestions, term })
 
   const autocompleteContainer = qs(AUTOCOMPLETE_CONTAINER_SELECTOR)
   autocompleteContainer.innerHTML = autocompleteContainerHtml
