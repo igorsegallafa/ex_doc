@@ -44,9 +44,9 @@ export function getSuggestions (query, limit = 20) {
 
   const nodes = getSidebarNodes()
 
-  const moduleSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.modules, query, SUGGESTION_CATEGORY.module), ...findSuggestionsInChildNodes(nodes.modules, query, SUGGESTION_CATEGORY.moduleChild)]);
-  const taskSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.tasks, query, SUGGESTION_CATEGORY.mixTask)]);
-  const extraSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.extras, query, SUGGESTION_CATEGORY.extra), ...findSuggestionsInExtraChild(nodes.extras, query, SUGGESTION_CATEGORY.extraChild)]);
+  const moduleSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.modules, query, SUGGESTION_CATEGORY.module), ...findSuggestionsInChildNodes(nodes.modules, query, SUGGESTION_CATEGORY.moduleChild)])
+  const taskSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.tasks, query, SUGGESTION_CATEGORY.mixTask)])
+  const extraSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.extras, query, SUGGESTION_CATEGORY.extra), ...findSuggestionsInExtraChild(nodes.extras, query, SUGGESTION_CATEGORY.extraChild)])
 
   const suggestions = [
     ...moduleSuggestions,
@@ -67,8 +67,9 @@ function getSuggestionsWithHeader (result, suggestion) {
   const considerGroupAsHeader = suggestion.group && suggestion.group !== '' && (suggestion.category === SUGGESTION_CATEGORY.extra || suggestion.category === SUGGESTION_CATEGORY.extraChild)
   const header = considerGroupAsHeader ? suggestion.group : SUGGESTION_CATEGORY_HEADER[suggestion.category]
 
-  if (!result.includes(header))
+  if (!result.includes(header)) {
     result.push(header)
+  }
 
   result.push(suggestion)
   return result

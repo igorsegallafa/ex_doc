@@ -67,9 +67,9 @@ function handleKeyDown (event) {
   if (event.target.matches('input, textarea')) { return }
 
   const matchingShortcut = keyboardShortcuts.find(shortcut =>
-      shortcut.handler === undefined ?
-          shortcut.key === event.key && !event.ctrlKey && !event.metaKey && !event.altKey :
-          shortcut.handler(event, shortcut)
+    shortcut.handler === undefined
+      ? shortcut.key === event.key && !event.ctrlKey && !event.metaKey && !event.altKey
+      : shortcut.handler(event, shortcut)
   )
   if (!matchingShortcut) { return }
   state.shortcutBeingPressed = matchingShortcut
@@ -82,7 +82,7 @@ function handleKeyUp (event) {
   state.shortcutBeingPressed = null
 }
 
-function quickSearchShortcutHandler(event, shortcut) {
+function quickSearchShortcutHandler (event, shortcut) {
   return (event.ctrlKey || event.metaKey) && event.key === shortcut.key
 }
 
