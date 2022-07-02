@@ -3,8 +3,14 @@
     <div class="title">"<em>{{term}}</em>"</div>
     <div class="description">Search the documentation</div>
   </a>
+
   {{#each suggestions}}
-    <a href="{{link}}" class="autocomplete-suggestion" data-index="{{@index}}" tabindex="-1">
+    {{#if header}}
+    <div class="header">{{{header}}}</div>
+    {{/if}}
+
+    {{#if title}}
+    <a href="{{link}}" class="autocomplete-suggestion" data-index="{{index}}" tabindex="-1">
       <div class="title">
         <span translate="no">{{{title}}}</span>
         {{#if label}}
@@ -18,5 +24,6 @@
         </div>
       {{/if}}
     </a>
+    {{/if}}
   {{/each}}
 </div>

@@ -39,11 +39,13 @@ export function isAutocompleteListOpen () {
  * @param {String} searchTerm The term to show suggestions for.
  */
 export function updateAutocompleteList (searchTerm) {
-  state.autocompleteSuggestions = getSuggestions(searchTerm)
+  const suggestions = getSuggestions(searchTerm)
+
+  state.autocompleteSuggestions = suggestions.suggestions
   state.selectedIdx = -1
 
   if (!isBlank(searchTerm)) {
-    renderSuggestions({ term: searchTerm, suggestions: state.autocompleteSuggestions })
+    renderSuggestions({ term: searchTerm, suggestions: suggestions.templateSuggestions })
     // Highlight the first option
     moveAutocompleteSelection(0)
     showAutocompleteList()
@@ -89,6 +91,7 @@ export function moveAutocompleteSelection (offset) {
 
   if (elementToSelect) {
     elementToSelect.classList.add('selected')
+    elementToSelect.scrollIntoView({behavior: 'smooth', block: 'nearest'})
   }
 }
 
