@@ -9,14 +9,25 @@ import { escapeRegexModifiers, escapeHtmlEntities, isBlank } from '../helpers'
  * @property {String|null} label A short text describing suggestion type (to be displayed alongside title).
  * @property {String|null} description An additional information (to be displayed below the title).
  * @property {Number} matchQuality How well the suggestion matches the given query string.
- * @property {String} category The group of suggestions that the suggestion belongs to.
+ * @property {String} category The category of suggestions that the suggestion belongs to.
+ * @property {String} group The group of suggestions that the suggestion belongs to.
+ * @property {Number} index The index of suggestion.
  */
 
 const SUGGESTION_CATEGORY = {
   module: 'module',
   moduleChild: 'module-child',
   mixTask: 'mix-task',
-  extra: 'extra'
+  extra: 'extra',
+  extraChild: 'extra-child'
+}
+
+const SUGGESTION_CATEGORY_HEADER = {
+  'module': 'Modules',
+  'module-child': 'Modules',
+  'mix-task': 'Tasks',
+  'extra': 'Pages',
+  'extra-child': 'Pages'
 }
 
 /**
@@ -24,23 +35,44 @@ const SUGGESTION_CATEGORY = {
  *
  * @param {String} query The query string to search for.
  * @param {Number} limit The maximum number of results to return.
- * @returns {Suggestion[]} List of suggestions sorted and limited.
+ * @returns {{suggestions: [], templateSuggestions: []}} List of suggestions sorted and limited.
  */
-export function getSuggestions (query, limit = 5) {
+export function getSuggestions (query, limit = 20) {
   if (isBlank(query)) {
-    return []
+    return {suggestions: [], templateSuggestions: []}
   }
 
   const nodes = getSidebarNodes()
 
-  const suggestions = [
-    ...findSuggestionsInTopLevelNodes(nodes.modules, query, SUGGESTION_CATEGORY.module),
-    ...findSuggestionsInChildNodes(nodes.modules, query, SUGGESTION_CATEGORY.moduleChild),
-    ...findSuggestionsInTopLevelNodes(nodes.tasks, query, SUGGESTION_CATEGORY.mixTask),
-    ...findSuggestionsInTopLevelNodes(nodes.extras, query, SUGGESTION_CATEGORY.extra)
-  ]
+  const moduleSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.modules, query, SUGGESTION_CATEGORY.module), ...findSuggestionsInChildNodes(nodes.modules, query, SUGGESTION_CATEGORY.moduleChild)])
+  const taskSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.tasks, query, SUGGESTION_CATEGORY.mixTask)])
+  const extraSuggestions = sort([...findSuggestionsInTopLevelNodes(nodes.extras, query, SUGGESTION_CATEGORY.extra), ...findSuggestionsInExtraChild(nodes.extras, query, SUGGESTION_CATEGORY.extraChild)])
 
-  return sort(suggestions).slice(0, limit)
+  const suggestions = [
+    ...moduleSuggestions,
+    ...taskSuggestions,
+    ...extraSuggestions.filter(suggestion => suggestion.group !== ''),
+    ...extraSuggestions.filter(suggestion => suggestion.group === '')
+  ].slice(0, limit).map((suggestion, index) => { return {...suggestion, ...{index: index}} })
+
+  const templateSuggestions =
+      suggestions
+        .reduce(getSuggestionsWithHeader, [])
+        .map(suggestion => typeof suggestion === 'string' ? {header: suggestion} : suggestion)
+
+  return {suggestions: suggestions, templateSuggestions: templateSuggestions}
+}
+
+function getSuggestionsWithHeader (result, suggestion) {
+  const considerGroupAsHeader = suggestion.group && suggestion.group !== '' && (suggestion.category === SUGGESTION_CATEGORY.extra || suggestion.category === SUGGESTION_CATEGORY.extraChild)
+  const header = considerGroupAsHeader ? suggestion.group : SUGGESTION_CATEGORY_HEADER[suggestion.category]
+
+  if (!result.includes(header)) {
+    result.push(header)
+  }
+
+  result.push(suggestion)
+  return result
 }
 
 /**
@@ -72,6 +104,20 @@ function findSuggestionsInChildNodes (nodes, query, category) {
 }
 
 /**
+ * Finds suggestions in headers of the given extra nodes.
+ */
+function findSuggestionsInExtraChild (nodes, query, category) {
+  return nodes
+    .filter(node => node.headers)
+    .flatMap(node => {
+      return node.headers.map(childNode =>
+        extraChildNodeSuggestion(childNode, node.id, node.title, query, category, node.group)
+      )
+    })
+    .filter(suggestion => suggestion !== null)
+}
+
+/**
  * Builds a suggestion for a top level node.
  * Returns null if the node doesn't match the query.
  */
@@ -84,7 +130,9 @@ function nodeSuggestion (node, query, category) {
     label: null,
     description: null,
     matchQuality: matchQuality(node.title, query),
-    category: category
+    category: category,
+    group: node.group,
+    index: null
   }
 }
 
@@ -101,7 +149,9 @@ function childNodeSuggestion (childNode, parentId, query, category, label) {
     label: label,
     description: parentId,
     matchQuality: matchQuality(childNode.id, query),
-    category: category
+    category: category,
+    group: null,
+    index: null
   }
 }
 
@@ -127,7 +177,28 @@ function moduleChildNodeSuggestion (childNode, parentId, query, category, label)
     label: label,
     description: parentId,
     matchQuality: matchQuality(modFun, query),
-    category: category
+    category: category,
+    group: null,
+    index: null
+  }
+}
+
+/**
+ * Builds a suggestion for a extra child node.
+ * Returns null if the node doesn't match the query.
+ */
+function extraChildNodeSuggestion (childNode, parentId, parentTitle, query, category, group) {
+  if (!matchesAll(childNode.id, query)) { return null }
+
+  return {
+    link: `${parentId}.html#${childNode.anchor}`,
+    title: highlightMatches(childNode.id, query),
+    label: null,
+    description: parentTitle,
+    matchQuality: matchQuality(childNode.id, query),
+    category: category,
+    group: group,
+    index: null
   }
 }
 

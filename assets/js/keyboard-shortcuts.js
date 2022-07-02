@@ -1,6 +1,6 @@
 import { qs } from './helpers'
 import { openSidebar, toggleSidebar } from './sidebar/sidebar-drawer'
-import { focusSearchInput } from './sidebar/sidebar-search'
+import { openQuickSearchModal } from './sidebar/quick-search'
 import { cycleTheme } from './theme'
 import { openQuickSwitchModal } from './quick-switch'
 import { closeModal, isModalOpen } from './modal'
@@ -21,12 +21,13 @@ export const keyboardShortcuts = [
   },
   {
     key: 's',
-    description: 'Focus search bar',
+    description: 'Open Quick Search modal',
     displayAs: '<kbd><kbd>/</kbd></kbd> or <kbd><kbd>s</kdb></kdb>',
     action: searchKeyAction
   },
   {
-    key: '/',
+    key: 'k',
+    handler: quickSearchShortcutHandler,
     action: searchKeyAction
   },
   {
@@ -64,9 +65,12 @@ function addEventListeners () {
 function handleKeyDown (event) {
   if (state.shortcutBeingPressed) { return }
   if (event.target.matches('input, textarea')) { return }
-  if (event.ctrlKey || event.metaKey || event.altKey) { return }
 
-  const matchingShortcut = keyboardShortcuts.find(shortcut => shortcut.key === event.key)
+  const matchingShortcut = keyboardShortcuts.find(shortcut =>
+    shortcut.handler === undefined
+      ? shortcut.key === event.key && !event.ctrlKey && !event.metaKey && !event.altKey
+      : shortcut.handler(event, shortcut)
+  )
   if (!matchingShortcut) { return }
   state.shortcutBeingPressed = matchingShortcut
 
@@ -78,13 +82,17 @@ function handleKeyUp (event) {
   state.shortcutBeingPressed = null
 }
 
+function quickSearchShortcutHandler (event, shortcut) {
+  return (event.ctrlKey || event.metaKey) && event.key === shortcut.key
+}
+
 // Additional shortcut actions
 
 function searchKeyAction (event) {
   closeModal()
   openSidebar()
     .then(() => {
-      focusSearchInput()
+      openQuickSearchModal()
     })
 }
 
